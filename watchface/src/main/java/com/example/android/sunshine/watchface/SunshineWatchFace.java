@@ -32,11 +32,11 @@ import android.os.Message;
 import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.text.format.Time;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -92,8 +92,8 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
     private class Engine extends CanvasWatchFaceService.Engine {
 
-//        Time mTime;
         Calendar mCalendar;
+        SimpleDateFormat mDateFormat;
 
         final Handler mUpdateTimeHandler = new EngineHandler(this);
 
@@ -104,8 +104,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-//                mTime.clear(intent.getStringExtra("time-zone"));
-//                mTime.setToNow();
                 mCalendar.setTimeZone(TimeZone.getDefault());
                 invalidate();
             }
@@ -123,15 +121,15 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
         boolean mShouldDrawColons;
 
-        float mTimeXOffset;
+        float mHourWidth;
         float mTimeYOffset;
         float mTimeXSpace;
         float mColonWidth;
-        float mDateXOffset;
-        float mTempXOffset;
+        float mDateWidth;
+        float mDateYOffset;
         float mTempYOffset;
         float mTempXSpace;
-        float mTempWidth;
+        float mHighTempWidth;
 
         // Whether the display supports fewer bits for each color in ambient mode.
         // When true, we disable anti-aliasing in ambient mode.
@@ -179,10 +177,9 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                     resources.getDimension(R.dimen.temperature_size));
 
 
-//            mTime = new Time();
-
             // allocate a Calendar to calculate local time using the UTC time and time zone
             mCalendar = Calendar.getInstance();
+            mDateFormat = new SimpleDateFormat("EEE d MMM yyyy");
         }
 
         @Override
@@ -216,8 +213,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
-//                mTime.clear(TimeZone.getDefault().getID());
-//                mTime.setToNow();
                 mCalendar.setTimeZone(TimeZone.getDefault());
             } else {
                 unregisterReceiver();
@@ -253,29 +248,18 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
             // Load resources that have alternate values for round watches.
             Resources resources = SunshineWatchFace.this.getResources();
+
             boolean isRound = insets.isRound();
 
-//            mTimeXOffset = resources.getDimension(isRound
-//                    ? R.dimen.time_x_offset_round : R.dimen.time_x_offset);
-
-//            float textSize = resources.getDimension(isRound
-//                    ? R.dimen.digital_time_size_round : R.dimen.digital_time_size);
-//            mHourPaint.setTextSize(textSize);
-
-            mTimeXOffset = resources.getDimension(R.dimen.time_x_offset);
             mTimeYOffset = resources.getDimension(R.dimen.time_y_offset);
             mTimeXSpace = resources.getDimension(R.dimen.time_x_space);
 
-            mColonWidth = mHourPaint.measureText(":") / 2;
+            mColonWidth = mHourPaint.measureText(":");
 
-            mDateXOffset = mDatePaint.measureText(getString(R.string.dummy_date)) / 2;
+            mDateYOffset = resources.getDimension(R.dimen.date_y_offset);
 
-            mTempXOffset = resources.getDimension(R.dimen.temperature_x_offset);
             mTempYOffset = resources.getDimension(R.dimen.temperature_y_offset);
             mTempXSpace = resources.getDimension(R.dimen.temperature_x_space);
-
-            mTempWidth = mHighTempPaint.measureText("25°") / 2;
-
         }
 
         @Override
@@ -317,62 +301,64 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             }
 
             // Update the time
-//            mTime.setToNow();
             mCalendar.setTimeInMillis(System.currentTimeMillis());
 
             // Draw H:MM in ambient mode / interactive mode.
-//            String hour = String.format("%2d", mTime.hour);
-//            String minute = String.format("%02d", mTime.minute);
             String hour = String.format("%02d", mCalendar.get(Calendar.HOUR_OF_DAY));
-            String minute = String.format("%02d", mCalendar.get(Calendar.MINUTE));
-
+            mHourWidth = mHourPaint.measureText(hour);
             canvas.drawText(hour,
-                    bounds.centerX() - mTimeXOffset - mTimeXSpace - mColonWidth,
-                    bounds.centerY() - mTimeYOffset,
+                    bounds.centerX() - mHourWidth - mTimeXSpace - mColonWidth / 2,
+                    bounds.centerY() + mTimeYOffset,
                     mHourPaint);
 
-            mShouldDrawColons = (System.currentTimeMillis() % 1000) < 500;
+            String minute = String.format("%02d", mCalendar.get(Calendar.MINUTE));
+            canvas.drawText(minute,
+                    bounds.centerX() + mColonWidth / 2 + mTimeXSpace,
+                    bounds.centerY() + mTimeYOffset,
+                    mMinutePaint);
+
+            // Draw Colon
             if (isInAmbientMode()) {
                 canvas.drawText(":",
-                        bounds.centerX() - mColonWidth,
-                        bounds.centerY() - mTimeYOffset,
+                        bounds.centerX() - mColonWidth /2,
+                        bounds.centerY() + mTimeYOffset,
                         mHourPaint);
             } else {
+                mShouldDrawColons = (System.currentTimeMillis() % 1000) < 500;
                 if (mShouldDrawColons){
                     canvas.drawText(":",
-                            bounds.centerX() - mColonWidth,
-                            bounds.centerY() - mTimeYOffset,
+                            bounds.centerX() - mColonWidth / 2,
+                            bounds.centerY() + mTimeYOffset,
                             mHourPaint);
                 }
             }
-
-            canvas.drawText(minute,
-                    bounds.centerX() + mColonWidth + mTimeXSpace,
-                    bounds.centerY() - mTimeYOffset,
-                    mMinutePaint);
 
 
             // Display more info in interactive mode
             if (!mAmbient) {
 
-                String date = getString(R.string.dummy_date);
+                // Draw current date
+                String date = mDateFormat.format(mCalendar.getTime());
+                mDateWidth = mDatePaint.measureText(date);
                 canvas.drawText(date,
-                        bounds.centerX() - mDateXOffset,
-                        bounds.centerY(),
+                        bounds.centerX() - mDateWidth / 2,
+                        bounds.centerY() + mDateYOffset,
                         mDatePaint);
 
+                // Draw high temp
                 String highTemp = getString(R.string.dummy_temperature_high);
+                mHighTempWidth = mHighTempPaint.measureText(highTemp);
                 canvas.drawText(highTemp,
-                        bounds.centerX() - mTempWidth,
+                        bounds.centerX() - mHighTempWidth / 2,
                         bounds.centerY() + mTempYOffset,
                         mHighTempPaint);
 
+                // Draw low temp
                 String lowTemp = getString(R.string.dummy_temperature_low);
                 canvas.drawText(lowTemp,
-                        bounds.centerX() + mTempWidth + mTempXSpace,
+                        bounds.centerX() + mHighTempWidth / 2 + mTempXSpace,
                         bounds.centerY() + mTempYOffset,
                         mLowTempPaint);
-
             }
         }
 

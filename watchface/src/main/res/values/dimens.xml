@@ -3,24 +3,16 @@
 
     <!--Time-->
     <dimen name="time_size">45dp</dimen>
-
-    <dimen name="time_x_offset">50dp</dimen>
-    <dimen name="time_y_offset">25dp</dimen>
-
+    <dimen name="time_y_offset">5dp</dimen>
     <dimen name="time_x_space">5dp</dimen>
 
     <!--Date-->
     <dimen name="date_size">15dp</dimen>
-
-    <dimen name="date_x_offset">12dp</dimen>
-    <dimen name="date_y_offset">95dp</dimen>
+    <dimen name="date_y_offset">-42dp</dimen>
 
     <!--Temperature-->
     <dimen name="temperature_size">22dp</dimen>
-
-    <dimen name="temperature_x_offset">40dp</dimen>
-    <dimen name="temperature_y_offset">35dp</dimen>
-
-    <dimen name="temperature_x_space">5dp</dimen>
+    <dimen name="temperature_y_offset">45dp</dimen>
+    <dimen name="temperature_x_space">10dp</dimen>
 
 </resources>
