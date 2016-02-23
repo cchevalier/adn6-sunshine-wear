@@ -42,25 +42,19 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
- * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
+ * Digital watch face
+ *
+ * On devices with low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
 public class SunshineWatchFace extends CanvasWatchFaceService {
 
     private static final Typeface NORMAL_TYPEFACE = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
     private static final Typeface BOLD_TYPEFACE = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
 
-    /**
-     * Update rate in milliseconds for interactive mode. We update once a second since seconds are
-     * displayed in interactive mode.
-     */
-//    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1);
-    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1) / 2;
+    // Update rate in milliseconds for interactive mode.
+    private static final long INTERACTIVE_UPDATE_RATE_MS = 500;
 
-
-    /**
-     * Handler message id for updating the time periodically in interactive mode.
-     */
+    // Handler message id for updating the time periodically in interactive mode.
     private static final int MSG_UPDATE_TIME = 0;
 
     @Override
@@ -68,8 +62,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         return new Engine();
     }
 
-
-    // Handler to update the time periodically in interactive mode???
+    // Handler to update the time periodically in interactive mode
     private static class EngineHandler extends Handler {
         private final WeakReference<SunshineWatchFace.Engine> mWeakReference;
 
@@ -90,6 +83,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         }
     }
 
+    // Engine
     private class Engine extends CanvasWatchFaceService.Engine {
 
         Calendar mCalendar;
@@ -135,7 +129,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         // When true, we disable anti-aliasing in ambient mode.
         boolean mLowBitAmbient;
 
-
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -176,7 +169,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                     NORMAL_TYPEFACE,
                     resources.getDimension(R.dimen.temperature_size));
 
-
             // allocate a Calendar to calculate local time using the UTC time and time zone
             mCalendar = Calendar.getInstance();
             mDateFormat = new SimpleDateFormat("EEE d MMM yyyy");
@@ -211,7 +203,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
             if (visible) {
                 registerReceiver();
-
                 // Update time zone in case it changed while we weren't visible.
                 mCalendar.setTimeZone(TimeZone.getDefault());
             } else {
@@ -249,7 +240,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             // Load resources that have alternate values for round watches.
             Resources resources = SunshineWatchFace.this.getResources();
 
-            boolean isRound = insets.isRound();
+            // boolean isRound = insets.isRound();
 
             mTimeYOffset = resources.getDimension(R.dimen.time_y_offset);
             mTimeXSpace = resources.getDimension(R.dimen.time_x_space);
@@ -303,7 +294,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             // Update the time
             mCalendar.setTimeInMillis(System.currentTimeMillis());
 
-            // Draw H:MM in ambient mode / interactive mode.
+            // Draw HH:MM in ambient mode / interactive mode.
             String hour = String.format("%02d", mCalendar.get(Calendar.HOUR_OF_DAY));
             mHourWidth = mHourPaint.measureText(hour);
             canvas.drawText(hour,
@@ -332,7 +323,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                             mHourPaint);
                 }
             }
-
 
             // Display more info in interactive mode
             if (!mAmbient) {
