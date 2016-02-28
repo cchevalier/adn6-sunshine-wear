@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="background">#1EA9F4</color>
+
+<!--
+    <color name="digital_text">#ffd740</color>
+    <color name="digital_text_light">#fff8e1</color>
+-->
+
+    <!-- Text colors close to official specs-->
+    <color name="digital_text">#FFFFFF</color>
+    <color name="digital_text_light">#BBE5FB</color>
+</resources>

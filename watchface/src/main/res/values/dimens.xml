@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Time -->
+    <dimen name="time_size">45dp</dimen>
+
+    <dimen name="time_x_space">0dp</dimen>
+    <dimen name="time_y_offset">5dp</dimen>
+
+    <!-- Date -->
+    <dimen name="date_size">15dp</dimen>
+    <dimen name="date_y_offset">-42dp</dimen>
+
+    <!-- Weather -->
+    <dimen name="weather_x_space">10dp</dimen>
+    <dimen name="weather_y_space">20dp</dimen>
+
+    <!-- Temperature -->
+    <dimen name="temperature_size">22dp</dimen>
+
+</resources>
