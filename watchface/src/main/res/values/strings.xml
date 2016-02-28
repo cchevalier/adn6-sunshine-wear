@@ -1,7 +1,4 @@
 <resources>
     <string name="app_name">Sunshine WatchFace</string>
     <string name="my_digital_name">Sunshine Digital</string>
-
-    <string name="dummy_temperature_high">25°</string>
-    <string name="dummy_temperature_low">16°</string>
 </resources>

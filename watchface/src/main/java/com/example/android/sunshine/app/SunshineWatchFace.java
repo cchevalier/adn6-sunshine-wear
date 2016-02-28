@@ -34,7 +34,6 @@ import android.os.Message;
 import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
@@ -77,7 +76,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
     // Handler message id for updating the time periodically in interactive mode.
     private static final int MSG_UPDATE_TIME = 0;
 
-    // DataItem
+    // Weather DataItem keywords
     private static final String PATH_SUNSHINE_WEATHER = "/Sunshine/Weather";
     private static final String WEATHER_TIMESTAMP = "WEATHER_TIMESTAMP";
     private static final String CITY_NAME = "CITY_NAME";
@@ -137,7 +136,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                 .addApi(Wearable.API)
                 .build();
 
-
         // Keep track of the registration state to prevent throwing an exception when unregistering an unregistered receiver
         boolean mRegisteredTimeZoneReceiver = false;
 
@@ -157,24 +155,34 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         Paint mBackgroundPaint;
         Paint mHourPaint;
         Paint mMinutePaint;
-        Paint mSecondPaint;
-        Paint mDayPeriodPaint;
+        Paint mSecondPaint;         // not used in this version
+        Paint mDayPeriodPaint;      // not used in this version
         Paint mDatePaint;
-        Paint mHighTempPaint;
-        Paint mLowTempPaint;
+        Paint mTempHighPaint;
+        Paint mTempLowPaint;
         boolean mAmbient;
 
         boolean mShouldDrawColons;
 
+        // dimensions
         float mHourWidth;
         float mTimeYOffset;
         float mTimeXSpace;
         float mColonWidth;
+
         float mDateWidth;
         float mDateYOffset;
-        float mTempYOffset;
-        float mTempXSpace;
-        float mHighTempWidth;
+
+        float mWeatherXSpace;
+        float mWeatherYSpace;
+
+        Bitmap mWeatherBitmap;
+        float mWeatherBitmapWidth;
+        float mWeatherBitmapHeight;
+
+        float mTempHighHeight;
+        float mTempHighWidth;
+        float mTempLowWidth;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -207,12 +215,12 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                     NORMAL_TYPEFACE,
                     resources.getDimension(R.dimen.date_size));
 
-            mHighTempPaint = createTextPaint(
+            mTempHighPaint = createTextPaint(
                     ContextCompat.getColor(getApplicationContext(), R.color.digital_text),
                     BOLD_TYPEFACE,
                     resources.getDimension(R.dimen.temperature_size));
 
-            mLowTempPaint = createTextPaint(
+            mTempLowPaint = createTextPaint(
                     ContextCompat.getColor(getApplicationContext(), R.color.digital_text_light),
                     NORMAL_TYPEFACE,
                     resources.getDimension(R.dimen.temperature_size));
@@ -305,15 +313,30 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
             // boolean isRound = insets.isRound();
 
+            // Time line (middle one in this design)
             mTimeYOffset = resources.getDimension(R.dimen.time_y_offset);
             mTimeXSpace = resources.getDimension(R.dimen.time_x_space);
-
             mColonWidth = mHourPaint.measureText(":");
 
+            // Date line (upper line)
             mDateYOffset = resources.getDimension(R.dimen.date_y_offset);
 
-            mTempYOffset = resources.getDimension(R.dimen.temperature_y_offset);
-            mTempXSpace = resources.getDimension(R.dimen.temperature_x_space);
+            // Weather line (bottom line)
+            mWeatherYSpace = resources.getDimension(R.dimen.weather_y_space);
+            mWeatherXSpace = resources.getDimension(R.dimen.weather_x_space);
+            Log.d(TAG, "onApplyWindowInsets:   wXSp " + mWeatherXSpace);
+            Log.d(TAG, "onApplyWindowInsets:   wYSp " + mWeatherYSpace);
+
+            mWeatherBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
+            mWeatherBitmapWidth = mWeatherBitmap.getWidth();
+            mWeatherBitmapHeight = mWeatherBitmap.getHeight();
+            Log.d(TAG, "onApplyWindowInsets: icon W " + mWeatherBitmapWidth);
+            Log.d(TAG, "onApplyWindowInsets: icon H " + mWeatherBitmapHeight);
+
+            mTempHighHeight = - mTempHighPaint.ascent();
+            Log.d(TAG, "onDraw: text H " + mTempHighHeight);
+            Log.d(TAG, "onDraw: text A " + mTempHighPaint.ascent());
+            Log.d(TAG, "onDraw: text D " + mTempHighPaint.descent());
         }
 
         @Override
@@ -349,10 +372,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
 
-            int width = bounds.width();
-            int height = bounds.height();
-
-
             // Draw the background.
             if (isInAmbientMode()) {
                 canvas.drawColor(Color.BLACK);
@@ -377,7 +396,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                     bounds.centerY() + mTimeYOffset,
                     mMinutePaint);
 
-            // Draw Colon
+            // Draw Colon (every half second in interactive mode)
             if (isInAmbientMode()) {
                 canvas.drawText(":",
                         bounds.centerX() - mColonWidth / 2,
@@ -396,7 +415,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             // Display more info in interactive mode
             if (!mAmbient) {
 
-                //Top line: date
+                // Top line: date
                 String date = mDateFormat.format(mCalendar.getTime());
                 mDateWidth = mDatePaint.measureText(date);
                 canvas.drawText(date,
@@ -404,32 +423,46 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                         bounds.centerY() + mDateYOffset,
                         mDatePaint);
 
+                //
+                // Bottom line: weather info
+                //
                 if (mWeatherInit) {
-                    // Bottom line - middle: high temp
-//                String highTemp = getString(R.string.dummy_temperature_high);
-                    String highTemp = String.format("%1.0f°", mTempMax);
-                    mHighTempWidth = mHighTempPaint.measureText(highTemp);
-                    canvas.drawText(highTemp,
-                            bounds.centerX() - mHighTempWidth / 2,
-                            bounds.centerY() + mTempYOffset,
-                            mHighTempPaint);
 
-                    // Bottom line - right: low temp
-//                String lowTemp = getString(R.string.dummy_temperature_low);
-                    String lowTemp = String.format("%1.0f°", mTempMin);
-                    canvas.drawText(lowTemp,
-                            bounds.centerX() + mHighTempWidth / 2 + mTempXSpace,
-                            bounds.centerY() + mTempYOffset,
-                            mLowTempPaint);
+                    // Separator line
+                    float x = 1.25f * mWeatherXSpace;
+                    float y = mWeatherYSpace;
+                    canvas.drawLine(
+                            bounds.centerX() - x, bounds.centerY() + y,
+                            bounds.centerX() + x, bounds.centerY() + y,
+                            mTempLowPaint);
 
-                    // Bottom line - left:  weather bitmap
-                    Bitmap weatherBitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
-                    // Log.d(TAG, "onDraw: H="+ weatherBitmap.getHeight()); //sq hdpi:72 rd 360dpi (xhpi+): 108
-                    // Log.d(TAG, "onDraw: W"+ weatherBitmap.getWidth());
-                    canvas.drawBitmap(weatherBitmap,
-                            bounds.centerX() - 2 * mHighTempWidth - mTempXSpace,
-                            bounds.centerY() + mTempYOffset / 4,
+                    // Weather info
+                    mWeatherBitmap = BitmapFactory.decodeResource(getResources(), getWeatherBitmapId(mWeatherId));
+                    String tempHigh = String.format("%1.0f°", mTempMax);
+                    String tempLow = String.format("%1.0f°", mTempMin);
+
+                    // Weather info dimensions
+                    mTempHighWidth = mTempHighPaint.measureText(tempHigh);
+                    mTempLowWidth = mTempHighPaint.measureText(tempLow);
+                    float weatherWidth = mWeatherBitmapWidth + mTempHighWidth + mTempLowWidth + 2* mWeatherXSpace;
+
+                    // left: weather bitmap
+                    canvas.drawBitmap(mWeatherBitmap,
+                            bounds.centerX() - weatherWidth / 2,
+                            bounds.centerY() + mWeatherYSpace,
                             new Paint());
+
+                    // middle: temp high
+                    canvas.drawText(tempHigh,
+                            bounds.centerX() - weatherWidth / 2 + mWeatherBitmapWidth + mWeatherXSpace,
+                            bounds.centerY() + mWeatherYSpace + mWeatherBitmapHeight / 2 + mTempHighHeight / 2,
+                            mTempHighPaint);
+
+                    // right: temp low
+                    canvas.drawText(tempLow,
+                            bounds.centerX() - weatherWidth / 2 + mWeatherBitmapWidth + mTempHighWidth + 2 * mWeatherXSpace,
+                            bounds.centerY() + mWeatherYSpace + mWeatherBitmapHeight / 2 + mTempHighHeight / 2,
+                            mTempLowPaint);
                 }
             }
         }
@@ -517,6 +550,35 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             Log.d(TAG, "onDataChanged: WeatherId= " + mWeatherId);
             Log.d(TAG, "onDataChanged:   tempMax= " + mTempMax);
             Log.d(TAG, "onDataChanged:   tempMin= " + mTempMin);
+        }
+
+        private int getWeatherBitmapId(int weatherId) {
+            // Based on weather code data found at:
+            // http://bugs.openweathermap.org/projects/api/wiki/Weather_Condition_Codes
+            if (weatherId >= 200 && weatherId <= 232) {
+                return R.drawable.ic_storm;
+            } else if (weatherId >= 300 && weatherId <= 321) {
+                return R.drawable.ic_light_rain;
+            } else if (weatherId >= 500 && weatherId <= 504) {
+                return R.drawable.ic_rain;
+            } else if (weatherId == 511) {
+                return R.drawable.ic_snow;
+            } else if (weatherId >= 520 && weatherId <= 531) {
+                return R.drawable.ic_rain;
+            } else if (weatherId >= 600 && weatherId <= 622) {
+                return R.drawable.ic_snow;
+            } else if (weatherId >= 701 && weatherId <= 761) {
+                return R.drawable.ic_fog;
+            } else if (weatherId == 761 || weatherId == 781) {
+                return R.drawable.ic_storm;
+            } else if (weatherId == 800) {
+                return R.drawable.ic_clear;
+            } else if (weatherId == 801) {
+                return R.drawable.ic_light_clouds;
+            } else if (weatherId >= 802 && weatherId <= 804) {
+                return R.drawable.ic_cloudy;
+            }
+            return R.drawable.ic_unknown;
         }
 
     }
