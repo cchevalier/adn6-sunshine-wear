@@ -5,10 +5,10 @@ adn6--sunshine-wear
 by CChevalier, Feb. 2016
 
 ## Introduction
-This README file presents the references I used to complete each requirement and optional task of the Android Developer Nanodegree - Project 6: Go Ubiquitous
+This README file presents the references I used to complete the Android Developer Nanodegree - Project 6: Go Ubiquitous
 
 - Original code for the Sunshine app taken from [branch 7.05](https://github.com/udacity/Advanced_Android_Development/tree/7.05_Pretty_Wallpaper_Time) of the Udacity [repository](https://github.com/udacity/Advanced_Android_Development)
-
+- [Original README.md](./README_Original.md)
 
 ### Snapshots
 

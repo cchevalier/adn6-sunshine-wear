@@ -426,6 +426,14 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
                 //
                 // Bottom line: weather info
                 //
+                // mWeatherInit is used as a flag if weather data has been received at any point on the watch side.
+                //
+                // Weather data is sent on the app side by the SunshineSyncAdapter (every 3 hour, one way communication)
+                // or each time location is changed in the app settings (also useful for testing).
+                //
+                // The condition below could be extended to prevent display of weather data is outdated (based on the
+                // timestamp also transmitted by the app for instance).
+                //
                 if (mWeatherInit) {
 
                     // Separator line
